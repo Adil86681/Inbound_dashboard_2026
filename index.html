@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Inbound Shipments — Firstbase / Geodis</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #fafaf8;
+    --border: #e4e2dc;
+    --border-strong: #ccc9be;
+    --text-primary: #1a1917;
+    --text-secondary: #6b6860;
+    --text-muted: #a09d96;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --accent2: #0ea5e9;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --red: #dc2626;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.04);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font-body: 'DM Sans', sans-serif;
+    --font-display: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-mark {
+    width: 32px;
+    height: 32px;
+    background: var(--text-primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark span {
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .app-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .app-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .refresh-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-btn.spinning svg {
+    animation: spin 0.7s linear infinite;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 32px;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+  }
+
+  .filter-group.wide { min-width: 280px; }
+
+  .filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  select, .select-styled {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a09d96' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+  }
+
+  /* Week range toggle */
+  .week-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+  }
+
+  .week-btn {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .week-btn.active {
+    background: var(--surface);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-weight: 600;
+  }
+
+  /* Customer multi-select dropdown */
+  .customer-dropdown-wrapper {
+    position: relative;
+  }
+
+  .customer-trigger {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 28px 8px 12px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 220px;
+    text-align: left;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a09d96' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .customer-trigger:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+  }
+
+  .customer-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 200;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    width: 280px;
+    overflow: hidden;
+  }
+
+  .customer-panel.open { display: block; }
+
+  .customer-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .customer-search input {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 13px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    background: var(--surface2);
+    color: var(--text-primary);
+  }
+
+  .customer-search input:focus {
+    border-color: var(--accent);
+  }
+
+  .customer-actions {
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .customer-actions button {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .customer-actions button:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  .customer-list {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  .customer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    transition: background 0.1s;
+  }
+
+  .customer-item:hover { background: var(--surface2); }
+  .customer-item input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+  /* ── KPI CARDS ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+  }
+
+  .kpi-card:hover { box-shadow: var(--shadow); }
+
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -1px;
+  }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .kpi-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-left: 6px;
+  }
+
+  .kpi-trend.up { background: var(--green-light); color: var(--green); }
+  .kpi-trend.down { background: #fef2f2; color: var(--red); }
+  .kpi-trend.neutral { background: var(--amber-light); color: var(--amber); }
+
+  /* ── MAIN CONTENT GRID ── */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+
+  .card-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  /* ── CHART ── */
+  .chart-wrap {
+    position: relative;
+    height: 280px;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  /* ── WEEKLY TABLE ── */
+  .weekly-table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    white-space: nowrap;
+  }
+
+  thead th:not(:first-child) { text-align: right; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  tbody td {
+    padding: 11px 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  tbody td:not(:first-child) { text-align: right; }
+
+  .week-label {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .week-date-range {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .num-badge {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .current-week td { background: var(--accent-light) !important; }
+  .current-week td:first-child { border-left: 3px solid var(--accent); }
+
+  /* ── CATEGORY BREAKDOWN ── */
+  .category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .category-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .category-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .category-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .cat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .category-counts {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+  }
+
+  .category-counts span {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .bar-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  /* ── BOTTOM SECTION ── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* ── TOP CUSTOMERS ── */
+  .customer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .customer-row:last-child { border-bottom: none; }
+
+  .customer-name-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .customer-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .customer-stats .stat-val {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* ── LOADING ── */
+  .loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── PILLS / TAGS ── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .pill.coventry { background: #eff6ff; color: #1d4ed8; }
+  .pill.germany { background: #f0fdf4; color: #15803d; }
+  .pill.oshawa { background: #fdf4ff; color: #7c3aed; }
+  .pill.all { background: var(--surface2); color: var(--text-secondary); }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .bottom-grid { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 600px) {
+    .main { padding: 16px; }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-left">
+    <div class="logo-mark"><span>FB</span></div>
+    <div>
+      <div class="app-title">Inbound Shipments</div>
+      <div class="app-subtitle">Geodis Warehouse Operations · 2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="last-updated" id="lastUpdated">Loading data…</span>
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" title="Refresh from Google Sheet">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.5 2.5A6 6 0 1 1 7 1a6 6 0 0 1 4.243 1.757" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M9 1.5l2.5.757-.757 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Warehouse</span>
+      <select id="warehouseFilter" onchange="applyFilters()">
+        <option value="all">All Warehouses</option>
+        <option value="Warehouse - Coventry UK">Coventry UK</option>
+        <option value="Warehouse - Germany EU">Germany EU</option>
+        <option value="Warehouse - Oshawa CAN">Oshawa CAN</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">Weeks Displayed</span>
+      <div class="week-toggle">
+        <button class="week-btn" onclick="setWeeks(4)" id="wk4">4W</button>
+        <button class="week-btn" onclick="setWeeks(8)" id="wk8">8W</button>
+        <button class="week-btn" onclick="setWeeks(12)" id="wk12">12W</button>
+      </div>
+    </div>
+
+    <div class="filter-group wide">
+      <span class="filter-label">Customer</span>
+      <div class="customer-dropdown-wrapper" id="customerDropdown">
+        <button class="customer-trigger" id="customerTrigger" onclick="toggleCustomerPanel(event)">All Customers</button>
+        <div class="customer-panel" id="customerPanel">
+          <div class="customer-search">
+            <input type="text" placeholder="Search customers…" id="customerSearch" oninput="filterCustomerList()" />
+          </div>
+          <div class="customer-actions">
+            <button onclick="selectAllCustomers()">Select all</button>
+            <button onclick="clearAllCustomers()">Clear all</button>
+          </div>
+          <div class="customer-list" id="customerList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-row" id="kpiRow">
+    <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div> Loading…</div>
+  </div>
+
+  <!-- CHART + CATEGORY -->
+  <div class="content-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Weekly Inbound</span>
+        <select id="chartMetric" onchange="applyFilters()" style="font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--text-secondary);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 24px 5px 10px;cursor:pointer;outline:none;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a09d96' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px center;">
+          <option value="shipments">Shipments</option>
+          <option value="items">Items</option>
+        </select>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap">
+          <canvas id="weeklyChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Category Breakdown</span>
+        <span class="card-meta" id="catMeta">Period total</span>
+      </div>
+      <div class="card-body">
+        <div class="category-list" id="categoryBreakdown">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKLY TABLE + TOP CUSTOMERS -->
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Weekly Detail Table</span>
+        <span class="card-meta" id="tableMeta">—</span>
+      </div>
+      <div class="weekly-table-wrap" id="weeklyTableWrap">
+        <div class="loading-overlay"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Top Customers</span>
+        <span class="card-meta" id="topCustMeta">By shipment count</span>
+      </div>
+      <div class="card-body">
+        <div id="topCustomers"><div class="loading-overlay"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1__bFA66fee2_ZANTGceTPO1zFoK8HaFRIywsxaKXEsg/gviz/tq?tqx=out:csv&gid=193233960';
+
+// Column indices (0-based) from the COMPLETE tab
+const COL = {
+  type: 3,
+  warehouse: 4,
+  orderDate: 5,
+  customer: 6,
+  category: 10,
+  deliveredDate: 15,
+  completedDate: 17,
+  liveReceivingStatus: 22,
+  liveQty: 29,
+};
+
+const CATEGORY_COLORS = {
+  'COMPUTER': '#2563eb',
+  'MONITOR': '#0ea5e9',
+  'HEADSET': '#8b5cf6',
+  'KEYBOARD': '#10b981',
+  'MOUSE': '#f59e0b',
+  'MOBILE_ACCESSORY': '#ec4899',
+  'POWER_ADAPTER': '#14b8a6',
+  'DOCKING_STATION': '#f97316',
+  'WEBCAM': '#a855f7',
+  'OTHER': '#94a3b8',
+};
+
+function getCategoryColor(cat) {
+  return CATEGORY_COLORS[cat] || CATEGORY_COLORS['OTHER'];
+}
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allRows = [];
+let selectedWarehouse = 'all';
+let selectedCustomers = new Set(); // empty = all
+let allCustomers = [];
+let weeksToShow = 4;
+let weeklyChart = null;
+
+// ── CSV PARSING ────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i+1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') { field += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { field += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { row.push(field); field = ''; }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else { field += ch; }
+    }
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  // Formats: "January 12, 2026", "12-Jan-2026", "2026-01-12"
+  const d = new Date(str.replace(/(\d+)-([A-Za-z]+)-(\d+)/, '$1 $2 $3'));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// ── WEEK HELPERS ───────────────────────────────────────────────────────────
+function getMonday(d) {
+  const dt = new Date(d);
+  const day = dt.getDay(); // 0=Sun
+  const diff = (day === 0) ? -6 : 1 - day;
+  dt.setDate(dt.getDate() + diff);
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
+function formatWeekLabel(monday) {
+  const sun = new Date(monday);
+  sun.setDate(monday.getDate() + 6);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[monday.getMonth()]} ${monday.getDate()} – ${months[sun.getMonth()]} ${sun.getDate()}`;
+}
+
+function formatWeekKey(monday) {
+  return monday.toISOString().slice(0, 10);
+}
+
+// ── LOAD DATA ──────────────────────────────────────────────────────────────
+async function loadData() {
+  const btn = document.getElementById('refreshBtn');
+  const statusEl = document.getElementById('lastUpdated');
+
+  if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
+  statusEl.textContent = 'Fetching data…';
+
+  try {
+    const resp = await fetch(SHEET_CSV_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+
+    // Check if we got redirected to a login page (HTML instead of CSV)
+    if (text.trim().startsWith('<')) {
+      throw new Error('Sheet returned HTML — make sure you are logged into Google in this browser and the sheet is accessible.');
+    }
+
+    const rows = parseCSV(text);
+
+    // Skip header row; filter to 2026 + exclude Cancelled / Not Completed statuses
+    const EXCLUDED_STATUSES = ['CANCELLED', 'NOT_COMPLETED', 'NOT COMPLETED'];
+    allRows = rows.slice(1).filter(r => {
+      const cd = r[COL.completedDate] || '';
+      if (!cd.includes('2026')) return false;
+      const status = (r[COL.liveReceivingStatus] || '').trim().toUpperCase();
+      if (EXCLUDED_STATUSES.includes(status)) return false;
+      return true;
+    });
+
+    // Extract unique customers
+    allCustomers = [...new Set(allRows.map(r => r[COL.customer]))].filter(Boolean).sort();
+
+    // Reset customer selection on first load only
+    if (selectedCustomers.size === 0 || !window._dataLoaded) {
+      selectedCustomers.clear();
+      window._dataLoaded = true;
+    }
+
+    // Rebuild customer panel
+    buildCustomerList();
+
+    const now = new Date();
+    statusEl.textContent =
+      `Refreshed ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} · ${allRows.length.toLocaleString()} rows`;
+
+    applyFilters();
+  } catch (e) {
+    statusEl.textContent = '⚠ Error loading data';
+    document.getElementById('kpiRow').innerHTML = `
+      <div style="grid-column:1/-1;padding:24px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;line-height:1.7;">
+        <strong>Failed to load data</strong><br>
+        ${e.message}<br><br>
+        <strong>To fix:</strong> This dashboard must be hosted on <code>https://</code> (e.g. Netlify) to fetch Google Sheets data. 
+        Opening it as a local <code>file://</code> URL blocks cross-origin requests.<br>
+        Drag this HTML file onto <a href="https://app.netlify.com/drop" target="_blank" style="color:#2563eb">app.netlify.com/drop</a> to deploy instantly.
+      </div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
+  }
+}
+
+function refreshData() {
+  loadData();
+}
+
+// ── CUSTOMER PANEL ─────────────────────────────────────────────────────────
+function buildCustomerList(filter = '') {
+  const list = document.getElementById('customerList');
+  const filtered = filter
+    ? allCustomers.filter(c => c.toLowerCase().includes(filter.toLowerCase()))
+    : allCustomers;
+
+  list.innerHTML = filtered.map(c => `
+    <label class="customer-item">
+      <input type="checkbox" value="${c}" ${selectedCustomers.size === 0 || selectedCustomers.has(c) ? 'checked' : ''} 
+        onchange="toggleCustomer('${c.replace(/'/g,"\\'")}', this.checked)" />
+      ${c}
+    </label>
+  `).join('');
+}
+
+function toggleCustomerPanel(e) {
+  e.stopPropagation();
+  document.getElementById('customerPanel').classList.toggle('open');
+}
+
+function filterCustomerList() {
+  buildCustomerList(document.getElementById('customerSearch').value);
+}
+
+function toggleCustomer(name, checked) {
+  if (checked) {
+    if (selectedCustomers.size === allCustomers.length - 1) {
+      selectedCustomers.clear();
+    } else {
+      selectedCustomers.add(name);
+    }
+  } else {
+    if (selectedCustomers.size === 0) {
+      allCustomers.forEach(c => selectedCustomers.add(c));
+    }
+    selectedCustomers.delete(name);
+  }
+  updateCustomerTrigger();
+  applyFilters();
+}
+
+function selectAllCustomers() {
+  selectedCustomers.clear();
+  buildCustomerList(document.getElementById('customerSearch').value);
+  updateCustomerTrigger();
+  applyFilters();
+}
+
+function clearAllCustomers() {
+  selectedCustomers.clear();
+  allCustomers.forEach(c => selectedCustomers.add(c));
+  // Actually select none — keep the set of none selected = no rows
+  // Let's handle: empty set = all, full set = all, mid = filter
+  buildCustomerList(document.getElementById('customerSearch').value);
+  updateCustomerTrigger();
+  applyFilters();
+}
+
+function updateCustomerTrigger() {
+  const btn = document.getElementById('customerTrigger');
+  if (selectedCustomers.size === 0 || selectedCustomers.size === allCustomers.length) {
+    btn.textContent = 'All Customers';
+  } else if (selectedCustomers.size === 1) {
+    btn.textContent = [...selectedCustomers][0];
+  } else {
+    btn.textContent = `${selectedCustomers.size} customers selected`;
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('customerDropdown');
+  if (!dd.contains(e.target)) {
+    document.getElementById('customerPanel').classList.remove('open');
+  }
+});
+
+// ── FILTER & COMPUTE ───────────────────────────────────────────────────────
+function setWeeks(n) {
+  weeksToShow = n;
+  ['4','8','12'].forEach(k => document.getElementById('wk'+k).classList.toggle('active', k == n));
+  applyFilters();
+}
+
+function applyFilters() {
+  selectedWarehouse = document.getElementById('warehouseFilter').value;
+
+  // Filter rows
+  let rows = allRows.filter(r => {
+    if (selectedWarehouse !== 'all' && r[COL.warehouse] !== selectedWarehouse) return false;
+    if (selectedCustomers.size > 0 && selectedCustomers.size < allCustomers.length) {
+      if (!selectedCustomers.has(r[COL.customer])) return false;
+    }
+    return true;
+  });
+
+  // Build week buckets — last N weeks from today
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const currentMonday = getMonday(today);
+
+  const weeks = [];
+  for (let i = weeksToShow - 1; i >= 0; i--) {
+    const monday = new Date(currentMonday);
+    monday.setDate(monday.getDate() - i * 7);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23,59,59,999);
+    weeks.push({ monday, sunday, key: formatWeekKey(monday), label: formatWeekLabel(monday), shipments: 0, qty: 0, categories: {}, isCurrent: i === 0 });
+  }
+
+  // Assign rows to weeks
+  rows.forEach(r => {
+    const d = parseDate(r[COL.completedDate]);
+    if (!d) return;
+    const wk = weeks.find(w => d >= w.monday && d <= w.sunday);
+    if (!wk) return;
+    wk.shipments++;
+    const q = parseInt(r[COL.liveQty], 10);
+    wk.qty += isNaN(q) ? 1 : q;
+    const cat = r[COL.category] || 'OTHER';
+    wk.categories[cat] = (wk.categories[cat] || 0) + 1;
+  });
+
+  renderKPIs(weeks, rows);
+  renderChart(weeks);
+  renderTable(weeks);
+  renderCategories(weeks, rows);
+  renderTopCustomers(rows);
+}
+
+// ── KPI CARDS ──────────────────────────────────────────────────────────────
+function renderKPIs(weeks, rows) {
+  const current = weeks[weeks.length - 1];
+  const prev = weeks[weeks.length - 2];
+
+  const totalShipments = weeks.reduce((s, w) => s + w.shipments, 0);
+  const totalQty = weeks.reduce((s, w) => s + w.qty, 0);
+  const avgPerWeek = totalShipments > 0 ? Math.round(totalShipments / weeksToShow) : 0;
+
+  const categories = {};
+  rows.forEach(r => {
+    const cat = r[COL.category] || 'OTHER';
+    categories[cat] = (categories[cat] || 0) + 1;
+  });
+  const topCat = Object.entries(categories).sort((a,b) => b[1]-a[1])[0];
+
+  const shipmentDelta = prev ? current.shipments - prev.shipments : 0;
+  const deltaClass = shipmentDelta > 0 ? 'up' : shipmentDelta < 0 ? 'down' : 'neutral';
+  const deltaSign = shipmentDelta > 0 ? '↑' : shipmentDelta < 0 ? '↓' : '→';
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total Shipments</div>
+      <div class="kpi-value">${totalShipments.toLocaleString()}</div>
+      <div class="kpi-sub">Last ${weeksToShow} weeks</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Items</div>
+      <div class="kpi-value">${totalQty.toLocaleString()}</div>
+      <div class="kpi-sub">Units received</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">This Week</div>
+      <div class="kpi-value">${current.shipments.toLocaleString()} <span class="kpi-trend ${deltaClass}">${deltaSign} ${Math.abs(shipmentDelta)}</span></div>
+      <div class="kpi-sub">vs ${prev ? prev.shipments : '—'} last week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg / Week</div>
+      <div class="kpi-value">${avgPerWeek.toLocaleString()}</div>
+      <div class="kpi-sub">Top: ${topCat ? topCat[0] : '—'}</div>
+    </div>
+  `;
+}
+
+// ── CHART ──────────────────────────────────────────────────────────────────
+function renderChart(weeks) {
+  const ctx = document.getElementById('weeklyChart').getContext('2d');
+  if (weeklyChart) weeklyChart.destroy();
+
+  const metric = document.getElementById('chartMetric').value;
+  const isShipments = metric === 'shipments';
+
+  const labels = weeks.map(w => w.label);
+  const data = weeks.map(w => isShipments ? w.shipments : w.qty);
+  const color = isShipments ? '#2563eb' : '#f59e0b';
+  const colorLight = isShipments ? '#bfdbfe' : '#fde68a';
+  const label = isShipments ? 'Shipments' : 'Items';
+
+  weeklyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label,
+        data,
+        backgroundColor: weeks.map(w => w.isCurrent ? color : colorLight),
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1917',
+          titleFont: { family: "'Syne', sans-serif", size: 12, weight: '700' },
+          bodyFont: { family: "'DM Sans', sans-serif", size: 12 },
+          padding: 10,
+          cornerRadius: 6,
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: "'DM Sans', sans-serif", size: 11 }, color: '#a09d96', maxRotation: 30 },
+          border: { color: '#e4e2dc' }
+        },
+        y: {
+          grid: { color: '#f0ede6' },
+          ticks: { font: { family: "'DM Sans', sans-serif", size: 11 }, color: '#a09d96', stepSize: 1 },
+          border: { color: '#e4e2dc', dash: [4, 4] },
+          title: { display: true, text: label, font: { size: 11, family: "'DM Sans'" }, color: '#a09d96' },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+// ── TABLE ──────────────────────────────────────────────────────────────────
+function renderTable(weeks) {
+  const wrap = document.getElementById('weeklyTableWrap');
+  if (!weeks.some(w => w.shipments > 0)) {
+    wrap.innerHTML = `<div class="empty-state">No shipments in this period.</div>`;
+    return;
+  }
+
+  const catHeaders = [...new Set(weeks.flatMap(w => Object.keys(w.categories)))].sort();
+
+  const headerCells = catHeaders.map(c => `<th>${c.replace('_', ' ')}</th>`).join('');
+
+  const rows = [...weeks].reverse().map(w => {
+    const catCells = catHeaders.map(c => `<td class="num-badge">${w.categories[c] || '—'}</td>`).join('');
+    return `
+      <tr class="${w.isCurrent ? 'current-week' : ''}">
+        <td>
+          <span class="week-label">${w.isCurrent ? '▶ ' : ''}Week of ${w.label.split('–')[0].trim()}</span>
+          <span class="week-date-range">${w.label}</span>
+        </td>
+        <td class="num-badge">${w.shipments || '—'}</td>
+        <td class="num-badge">${w.qty || '—'}</td>
+        ${catCells}
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Week</th>
+          <th>Shipments</th>
+          <th>Items</th>
+          ${headerCells}
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  document.getElementById('tableMeta').textContent =
+    `${weeks.reduce((s,w)=>s+w.shipments,0)} total shipments`;
+}
+
+// ── CATEGORY BREAKDOWN ─────────────────────────────────────────────────────
+function renderCategories(weeks, rows) {
+  const catTotals = {};
+  rows.forEach(r => {
+    // Only count rows that fall within our week range
+    const d = parseDate(r[COL.completedDate]);
+    if (!d) return;
+    const oldest = weeks[0].monday;
+    const newest = weeks[weeks.length-1].sunday;
+    if (d < oldest || d > newest) return;
+    const cat = r[COL.category] || 'OTHER';
+    catTotals[cat] = (catTotals[cat] || { shipments: 0, qty: 0 });
+    catTotals[cat].shipments++;
+    const q = parseInt(r[COL.liveQty], 10);
+    catTotals[cat].qty += isNaN(q) ? 1 : q;
+  });
+
+  const sorted = Object.entries(catTotals).sort((a,b) => b[1].shipments - a[1].shipments);
+  const maxVal = sorted[0]?.[1].shipments || 1;
+
+  const container = document.getElementById('categoryBreakdown');
+  if (!sorted.length) {
+    container.innerHTML = `<div class="empty-state">No data</div>`;
+    return;
+  }
+
+  container.innerHTML = sorted.map(([cat, vals]) => `
+    <div class="category-row">
+      <div class="category-row-header">
+        <div class="category-name">
+          <span class="cat-dot" style="background:${getCategoryColor(cat)}"></span>
+          ${cat.replace(/_/g,' ')}
+        </div>
+        <div class="category-counts">
+          <span>${vals.shipments}</span> shipments &nbsp;·&nbsp; <span>${vals.qty}</span> items
+        </div>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.round((vals.shipments/maxVal)*100)}%;background:${getCategoryColor(cat)}"></div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('catMeta').textContent = `${sorted.length} categories`;
+}
+
+// ── TOP CUSTOMERS ──────────────────────────────────────────────────────────
+function renderTopCustomers(rows) {
+  // Count per customer within the week window
+  const custTotals = {};
+  const oldest = (() => {
+    const monday = getMonday(new Date());
+    monday.setDate(monday.getDate() - (weeksToShow - 1) * 7);
+    return monday;
+  })();
+  
+  rows.forEach(r => {
+    const d = parseDate(r[COL.completedDate]);
+    if (!d || d < oldest) return;
+    const cust = r[COL.customer] || 'Unknown';
+    custTotals[cust] = custTotals[cust] || { shipments: 0, qty: 0 };
+    custTotals[cust].shipments++;
+    const q = parseInt(r[COL.liveQty], 10);
+    custTotals[cust].qty += isNaN(q) ? 1 : q;
+  });
+
+  const top = Object.entries(custTotals).sort((a,b) => b[1].shipments - a[1].shipments).slice(0, 10);
+
+  const container = document.getElementById('topCustomers');
+  if (!top.length) {
+    container.innerHTML = `<div class="empty-state">No data</div>`;
+    return;
+  }
+
+  container.innerHTML = top.map(([name, vals], i) => `
+    <div class="customer-row">
+      <div class="customer-name-text">${i+1}. ${name}</div>
+      <div class="customer-stats">
+        <span>${vals.shipments} <span class="stat-val">ships</span></span>
+        <span>${vals.qty} <span class="stat-val">items</span></span>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('topCustMeta').textContent = `Top ${top.length} by shipment count`;
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+setWeeks(4);
+loadData();
+</script>
+</body>
+</html>

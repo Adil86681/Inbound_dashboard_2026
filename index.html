@@ -708,6 +708,15 @@
     </div>
 
     <div class="filter-group">
+      <span class="filter-label">Supply Type</span>
+      <select id="supplyTypeFilter" onchange="applyFilters()">
+        <option value="all">All Types</option>
+        <option value="true">Firstbase Supplied</option>
+        <option value="false">Customer Supplied</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
       <span class="filter-label">Weeks Displayed</span>
       <div class="week-toggle">
         <button class="week-btn" onclick="setWeeks(4)" id="wk4">4W</button>
@@ -810,6 +819,7 @@ const COL = {
   category: 10,
   deliveredDate: 15,
   completedDate: 17,
+  fbSupplied: 7,
   liveReceivingStatus: 22,
   liveQty: 29,
 };
@@ -833,6 +843,7 @@ function getCategoryColor(cat) {
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let allRows = [];
+let selectedSupplyType = 'all'; // 'all', 'true', 'false'
 let selectedWarehouse = 'all';
 let selectedCustomers = new Set(); // empty = all
 let allCustomers = [];
@@ -1051,10 +1062,12 @@ function setWeeks(n) {
 
 function applyFilters() {
   selectedWarehouse = document.getElementById('warehouseFilter').value;
+  selectedSupplyType = document.getElementById('supplyTypeFilter').value;
 
   // Filter rows
   let rows = allRows.filter(r => {
     if (selectedWarehouse !== 'all' && r[COL.warehouse] !== selectedWarehouse) return false;
+    if (selectedSupplyType !== 'all' && (r[COL.fbSupplied] || '').toUpperCase() !== selectedSupplyType.toUpperCase()) return false;
     if (selectedCustomers.size > 0 && selectedCustomers.size < allCustomers.length) {
       if (!selectedCustomers.has(r[COL.customer])) return false;
     }

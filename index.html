@@ -1086,7 +1086,7 @@ function applyFilters() {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23,59,59,999);
-    weeks.push({ monday, sunday, key: formatWeekKey(monday), label: formatWeekLabel(monday), shipments: 0, qty: 0, categories: {}, isCurrent: i === 0 });
+    weeks.push({ monday, sunday, key: formatWeekKey(monday), label: formatWeekLabel(monday), shipments: 0, qty: 0, categories: {}, customers: {}, isCurrent: i === 0 });
   }
 
   // Assign rows to weeks
@@ -1100,6 +1100,10 @@ function applyFilters() {
     wk.qty += isNaN(q) ? 0 : q;
     const cat = r[COL.category] || 'OTHER';
     wk.categories[cat] = (wk.categories[cat] || 0) + 1;
+    const cust = r[COL.customer] || 'Unknown';
+    if (!wk.customers[cust]) wk.customers[cust] = { shipments: 0, qty: 0 };
+    wk.customers[cust].shipments++;
+    wk.customers[cust].qty += isNaN(q) ? 0 : q;
   });
 
   renderKPIs(weeks, rows);
@@ -1154,7 +1158,10 @@ function renderKPIs(weeks, rows) {
 }
 
 // ── CHART ──────────────────────────────────────────────────────────────────
+let chartWeeks = []; // kept for tooltip access
+
 function renderChart(weeks) {
+  chartWeeks = weeks;
   const ctx = document.getElementById('weeklyChart').getContext('2d');
   if (weeklyChart) weeklyChart.destroy();
 
@@ -1166,6 +1173,67 @@ function renderChart(weeks) {
   const color = isShipments ? '#2563eb' : '#f59e0b';
   const colorLight = isShipments ? '#bfdbfe' : '#fde68a';
   const label = isShipments ? 'Shipments' : 'Items';
+
+  // ── Custom external tooltip ──
+  function customTooltip(context) {
+    const tooltipEl = document.getElementById('chartTooltip') || (() => {
+      const el = document.createElement('div');
+      el.id = 'chartTooltip';
+      el.style.cssText = [
+        'position:absolute','pointer-events:none','z-index:300',
+        'background:#1a1917','border-radius:8px','padding:12px 14px',
+        'font-family:\'DM Sans\',sans-serif','font-size:12px','color:#fff',
+        'box-shadow:0 8px 24px rgba(0,0,0,0.25)','min-width:180px','max-width:260px',
+        'transition:opacity 0.15s',
+      ].join(';');
+      document.getElementById('weeklyChart').parentElement.style.position = 'relative';
+      document.getElementById('weeklyChart').parentElement.appendChild(el);
+      return el;
+    })();
+
+    const tooltip = context.tooltip;
+    if (tooltip.opacity === 0) { tooltipEl.style.opacity = '0'; return; }
+
+    const idx = tooltip.dataPoints?.[0]?.dataIndex;
+    const wk = chartWeeks[idx];
+    if (!wk) return;
+
+    const metric = document.getElementById('chartMetric').value;
+    const isShipments = metric === 'shipments';
+
+    // Sort customers by the active metric descending
+    const sorted = Object.entries(wk.customers)
+      .sort((a, b) => (isShipments ? b[1].shipments - a[1].shipments : b[1].qty - a[1].qty));
+
+    const rows = sorted.map(([name, vals]) => {
+      const val = isShipments ? vals.shipments : vals.qty;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <span style="color:#d1d0cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${name}</span>
+        <span style="font-weight:600;color:#fff;flex-shrink:0;">(${val})</span>
+      </div>`;
+    }).join('');
+
+    const total = isShipments ? wk.shipments : wk.qty;
+    const metricLabel = isShipments ? 'shipments' : 'items';
+
+    tooltipEl.innerHTML = `
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#fff;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.15);">
+        ${wk.label} &nbsp;<span style="font-family:'DM Sans',sans-serif;font-weight:400;color:#a09d96;font-size:11px;">${total} ${metricLabel}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;max-height:220px;overflow-y:auto;">${rows}</div>
+    `;
+
+    // Position: prefer above the bar, flip if near top
+    const canvas = context.chart.canvas;
+    const canvasRect = canvas.getBoundingClientRect();
+    const wrapRect = canvas.parentElement.getBoundingClientRect();
+    const x = tooltip.caretX;
+    const y = tooltip.caretY;
+
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = Math.min(x + 10, canvas.offsetWidth - 270) + 'px';
+    tooltipEl.style.top = Math.max(y - tooltipEl.offsetHeight - 10, 4) + 'px';
+  }
 
   weeklyChart = new Chart(ctx, {
     type: 'bar',
@@ -1185,11 +1253,8 @@ function renderChart(weeks) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a1917',
-          titleFont: { family: "'Syne', sans-serif", size: 12, weight: '700' },
-          bodyFont: { family: "'DM Sans', sans-serif", size: 12 },
-          padding: 10,
-          cornerRadius: 6,
+          enabled: false,
+          external: customTooltip,
         }
       },
       scales: {

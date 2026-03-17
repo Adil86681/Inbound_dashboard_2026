@@ -811,7 +811,7 @@ const COL = {
   deliveredDate: 15,
   completedDate: 17,
   liveReceivingStatus: 22,
-  liveQty: 29,
+  liveQty: 40,
 };
 
 const CATEGORY_COLORS = {
@@ -1084,7 +1084,7 @@ function applyFilters() {
     if (!wk) return;
     wk.shipments++;
     const q = parseInt(r[COL.liveQty], 10);
-    wk.qty += isNaN(q) ? 1 : q;
+    wk.qty += isNaN(q) ? 0 : q;
     const cat = r[COL.category] || 'OTHER';
     wk.categories[cat] = (wk.categories[cat] || 0) + 1;
   });
@@ -1254,7 +1254,7 @@ function renderCategories(weeks, rows) {
     catTotals[cat] = (catTotals[cat] || { shipments: 0, qty: 0 });
     catTotals[cat].shipments++;
     const q = parseInt(r[COL.liveQty], 10);
-    catTotals[cat].qty += isNaN(q) ? 1 : q;
+    catTotals[cat].qty += isNaN(q) ? 0 : q;
   });
 
   const sorted = Object.entries(catTotals).sort((a,b) => b[1].shipments - a[1].shipments);
@@ -1303,7 +1303,7 @@ function renderTopCustomers(rows) {
     custTotals[cust] = custTotals[cust] || { shipments: 0, qty: 0 };
     custTotals[cust].shipments++;
     const q = parseInt(r[COL.liveQty], 10);
-    custTotals[cust].qty += isNaN(q) ? 1 : q;
+    custTotals[cust].qty += isNaN(q) ? 0 : q;
   });
 
   const top = Object.entries(custTotals).sort((a,b) => b[1].shipments - a[1].shipments).slice(0, 10);

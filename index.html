@@ -799,7 +799,7 @@
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1__bFA66fee2_ZANTGceTPO1zFoK8HaFRIywsxaKXEsg/gviz/tq?tqx=out:csv&sheet=COMPLETE';
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1__bFA66fee2_ZANTGceTPO1zFoK8HaFRIywsxaKXEsg/gviz/tq?tqx=out:csv&gid=193233960';
 
 // Column indices (0-based) from the COMPLETE tab
 const COL = {
@@ -811,7 +811,7 @@ const COL = {
   deliveredDate: 15,
   completedDate: 17,
   liveReceivingStatus: 22,
-  liveQty: 40,
+  liveQty: 29,
 };
 
 const CATEGORY_COLORS = {
@@ -918,11 +918,11 @@ async function loadData() {
 
     const rows = parseCSV(text);
 
-    // Skip header row; filter to 2026 + exclude Cancelled / Not Completed statuses
-    const EXCLUDED_STATUSES = ['CANCELLED', 'NOT_COMPLETED', 'NOT COMPLETED'];
+    // Skip header row; filter to 2026 by ORDER DATE, exclude Cancelled + Not Received
+    const EXCLUDED_STATUSES = ['CANCELLED', 'NOT_RECEIVED'];
     allRows = rows.slice(1).filter(r => {
-      const cd = r[COL.completedDate] || '';
-      if (!cd.includes('2026')) return false;
+      const od = r[COL.orderDate] || '';
+      if (!od.includes('2026')) return false;
       const status = (r[COL.liveReceivingStatus] || '').trim().toUpperCase();
       if (EXCLUDED_STATUSES.includes(status)) return false;
       return true;

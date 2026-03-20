@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weekly Inbound Shipments — Firstbase / Geodis</title>
+<title>Inbound Shipments — Firstbase / Geodis</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -668,6 +668,92 @@
     .main { padding: 16px; }
     .kpi-row { grid-template-columns: 1fr 1fr; }
   }
+
+  /* ── TAB NAV ── */
+  .tab-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+  }
+
+  .tab-btn {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tab-btn:hover { color: var(--text-primary); }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    color: var(--accent);
+    min-width: 20px;
+  }
+
+  .tab-btn.active .tab-badge {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── OPEN ORDERS — BREAKDOWN GRID ── */
+  .oo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 1100px) { .oo-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .oo-grid { grid-template-columns: 1fr; } }
+
+  .oo-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 900px) { .oo-kpi-row { grid-template-columns: 1fr 1fr; } }
+
+  .received-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--green-light);
+    color: var(--green);
+  }
 </style>
 </head>
 <body>
@@ -693,6 +779,112 @@
   </div>
 </header>
 
+<!-- TAB NAV -->
+<nav class="tab-nav">
+  <button class="tab-btn" id="tabBtnOpen" onclick="switchTab('open')">
+    Open Orders
+    <span class="tab-badge" id="openOrdersBadge">—</span>
+  </button>
+  <button class="tab-btn active" id="tabBtnCompleted" onclick="switchTab('completed')">
+    Completed Orders
+  </button>
+</nav>
+
+<!-- ══ OPEN ORDERS TAB ══ -->
+<div class="tab-content" id="tabOpen">
+<main class="main">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Warehouse</span>
+      <select id="ooWarehouseFilter" onchange="applyOOFilters()">
+        <option value="all">All Warehouses</option>
+        <option value="Warehouse - Coventry UK">Coventry UK</option>
+        <option value="Warehouse - Germany EU">Germany EU</option>
+        <option value="Warehouse - Oshawa CAN">Oshawa CAN</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-label">Supply Type</span>
+      <select id="ooSupplyTypeFilter" onchange="applyOOFilters()">
+        <option value="all">All Types</option>
+        <option value="TRUE">Firstbase Supplied</option>
+        <option value="FALSE">Customer Supplied</option>
+      </select>
+    </div>
+
+    <div class="filter-group wide">
+      <span class="filter-label">Customer</span>
+      <div class="customer-dropdown-wrapper" id="ooCustomerDropdown">
+        <button class="customer-trigger" id="ooCustomerTrigger" onclick="toggleOOCustomerPanel(event)">All Customers</button>
+        <div class="customer-panel" id="ooCustomerPanel">
+          <div class="customer-search">
+            <input type="text" placeholder="Search customers…" id="ooCustomerSearch" oninput="filterOOCustomerList()" />
+          </div>
+          <div class="customer-actions">
+            <button onclick="selectAllOOCustomers()">Select all</button>
+            <button onclick="clearAllOOCustomers()">Clear all</button>
+          </div>
+          <div class="customer-list" id="ooCustomerList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="oo-kpi-row" id="ooKpiRow">
+    <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div> Loading…</div>
+  </div>
+
+  <!-- BREAKDOWNS -->
+  <div class="oo-grid" id="ooBreakdownGrid">
+    <!-- Warehouse breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">By Warehouse</span>
+        <span class="card-meta" id="ooWhMeta">—</span>
+      </div>
+      <div class="card-body">
+        <div class="category-list" id="ooWarehouseBreakdown">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Receiving Status breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">By Receiving Status</span>
+        <span class="card-meta" id="ooStatusMeta">—</span>
+      </div>
+      <div class="card-body">
+        <div class="category-list" id="ooStatusBreakdown">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Condition breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">By Condition</span>
+        <span class="card-meta" id="ooConditionMeta">—</span>
+      </div>
+      <div class="card-body">
+        <div class="category-list" id="ooConditionBreakdown">
+          <div class="loading-overlay"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ══ COMPLETED ORDERS TAB ══ -->
+<div class="tab-content active" id="tabCompleted">
 <main class="main">
 
   <!-- FILTER BAR -->
@@ -802,6 +994,7 @@
   </div>
 
 </main>
+</div>
 
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -981,6 +1174,7 @@ async function loadData() {
 
 function refreshData() {
   loadData();
+  loadOOData();
 }
 
 // ── CUSTOMER PANEL ─────────────────────────────────────────────────────────
@@ -1053,7 +1247,7 @@ function updateCustomerTrigger() {
   }
 }
 
-// Close dropdown when clicking outside
+// Close completed-tab dropdown when clicking outside
 document.addEventListener('click', (e) => {
   const dd = document.getElementById('customerDropdown');
   if (!dd.contains(e.target)) {
@@ -1416,6 +1610,259 @@ function renderTopCustomers(rows) {
 // ── INIT ───────────────────────────────────────────────────────────────────
 setWeeks(4);
 loadData();
+
+// ══════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  const isOpen = tab === 'open';
+  document.getElementById('tabOpen').classList.toggle('active', isOpen);
+  document.getElementById('tabCompleted').classList.toggle('active', !isOpen);
+  document.getElementById('tabBtnOpen').classList.toggle('active', isOpen);
+  document.getElementById('tabBtnCompleted').classList.toggle('active', !isOpen);
+  // Close any open dropdowns
+  document.getElementById('customerPanel').classList.remove('open');
+  document.getElementById('ooCustomerPanel').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// OPEN ORDERS DATA
+// ══════════════════════════════════════════════════════════════════════════
+const OO_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1__bFA66fee2_ZANTGceTPO1zFoK8HaFRIywsxaKXEsg/gviz/tq?tqx=out:csv&gid=85826033';
+
+const OO_COL = {
+  warehouse:      4,
+  orderDate:      5,
+  customer:       6,
+  fbSupplied:     7,
+  condition:      8,
+  category:       10,
+  comments:       16,
+  receivingStatus:22,
+  expectedQty:    29,
+};
+
+const STATUS_COLORS = {
+  'EXPECTED':           '#2563eb',
+  'PARTIALLY_RECEIVED': '#f59e0b',
+  'RECEIVED':           '#16a34a',
+  'PROCESSING':         '#8b5cf6',
+  'ISSUE':              '#dc2626',
+  'OTHER':              '#94a3b8',
+};
+
+const CONDITION_COLORS = {
+  'NEW':    '#16a34a',
+  'USED':   '#f59e0b',
+  'OTHER':  '#94a3b8',
+};
+
+function getStatusColor(s) { return STATUS_COLORS[s] || STATUS_COLORS['OTHER']; }
+function getConditionColor(c) { return CONDITION_COLORS[c] || CONDITION_COLORS['OTHER']; }
+function getWHColor(w) {
+  if (w.includes('Coventry')) return '#1d4ed8';
+  if (w.includes('Germany'))  return '#15803d';
+  if (w.includes('Oshawa'))   return '#7c3aed';
+  return '#94a3b8';
+}
+function getWHShortName(w) {
+  if (w.includes('Coventry')) return 'Coventry UK';
+  if (w.includes('Germany'))  return 'Germany EU';
+  if (w.includes('Oshawa'))   return 'Oshawa CAN';
+  return w;
+}
+
+let ooAllRows = [];
+let ooAllCustomers = [];
+let ooSelectedCustomers = new Set();
+
+async function loadOOData() {
+  try {
+    const resp = await fetch(OO_SHEET_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const text = await resp.text();
+    if (text.trim().startsWith('<')) throw new Error('Sheet returned HTML — ensure you are logged into Google.');
+
+    const rows = parseCSV(text);
+    // All rows, skip header, no date restriction
+    ooAllRows = rows.slice(1).filter(r => r.length > OO_COL.expectedQty);
+
+    ooAllCustomers = [...new Set(ooAllRows.map(r => r[OO_COL.customer]).filter(Boolean))].sort();
+    ooSelectedCustomers.clear();
+    buildOOCustomerList();
+    applyOOFilters();
+
+    // Update badge
+    document.getElementById('openOrdersBadge').textContent = ooAllRows.length.toLocaleString();
+  } catch(e) {
+    document.getElementById('ooKpiRow').innerHTML = `
+      <div style="grid-column:1/-1;padding:24px 20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b;font-size:13px;">
+        <strong>Failed to load open orders</strong><br>${e.message}
+      </div>`;
+  }
+}
+
+function applyOOFilters() {
+  const wh = document.getElementById('ooWarehouseFilter').value;
+  const st = document.getElementById('ooSupplyTypeFilter').value;
+
+  let rows = ooAllRows.filter(r => {
+    if (wh !== 'all' && r[OO_COL.warehouse] !== wh) return false;
+    if (st !== 'all' && (r[OO_COL.fbSupplied] || '').toUpperCase() !== st) return false;
+    if (ooSelectedCustomers.size > 0 && ooSelectedCustomers.size < ooAllCustomers.length) {
+      if (!ooSelectedCustomers.has(r[OO_COL.customer])) return false;
+    }
+    return true;
+  });
+
+  renderOOKPIs(rows);
+  renderOOBreakdown('ooWarehouseBreakdown', 'ooWhMeta', rows, OO_COL.warehouse, getWHColor, getWHShortName);
+  renderOOBreakdown('ooStatusBreakdown', 'ooStatusMeta', rows, OO_COL.receivingStatus, getStatusColor);
+  renderOOBreakdown('ooConditionBreakdown', 'ooConditionMeta', rows, OO_COL.condition, getConditionColor);
+}
+
+function renderOOKPIs(rows) {
+  const totalOrders = rows.length;
+  const totalQty = rows.reduce((s, r) => {
+    const q = parseInt(r[OO_COL.expectedQty], 10);
+    return s + (isNaN(q) ? 0 : q);
+  }, 0);
+  const receivedInWH = rows.filter(r =>
+    (r[OO_COL.comments] || '').toLowerCase().includes('received in wh')
+  ).length;
+
+  document.getElementById('ooKpiRow').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total Open Orders</div>
+      <div class="kpi-value">${totalOrders.toLocaleString()}</div>
+      <div class="kpi-sub">Active shipments</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Expected Items</div>
+      <div class="kpi-value">${totalQty.toLocaleString()}</div>
+      <div class="kpi-sub">Units pending</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Received in WH</div>
+      <div class="kpi-value">${receivedInWH.toLocaleString()}</div>
+      <div class="kpi-sub">${totalOrders > 0 ? Math.round(receivedInWH/totalOrders*100) : 0}% of open orders</div>
+    </div>
+  `;
+}
+
+function renderOOBreakdown(containerId, metaId, rows, colIdx, colorFn, labelFn) {
+  const totals = {};
+  rows.forEach(r => {
+    const key = (r[colIdx] || 'UNKNOWN').trim();
+    if (!totals[key]) totals[key] = { orders: 0, qty: 0 };
+    totals[key].orders++;
+    const q = parseInt(r[OO_COL.expectedQty], 10);
+    totals[key].qty += isNaN(q) ? 0 : q;
+  });
+
+  const sorted = Object.entries(totals).sort((a, b) => b[1].orders - a[1].orders);
+  const maxVal = sorted[0]?.[1].orders || 1;
+  const container = document.getElementById(containerId);
+
+  if (!sorted.length) {
+    container.innerHTML = `<div class="empty-state">No data</div>`;
+    document.getElementById(metaId).textContent = '—';
+    return;
+  }
+
+  document.getElementById(metaId).textContent = `${sorted.length} ${sorted.length === 1 ? 'group' : 'groups'}`;
+
+  container.innerHTML = sorted.map(([key, vals]) => {
+    const label = labelFn ? labelFn(key) : key.replace(/_/g, ' ');
+    const color = colorFn(key);
+    return `
+      <div class="category-row">
+        <div class="category-row-header">
+          <div class="category-name">
+            <span class="cat-dot" style="background:${color}"></span>
+            ${label}
+          </div>
+          <div class="category-counts">
+            <span>${vals.orders}</span> orders &nbsp;·&nbsp; <span>${vals.qty.toLocaleString()}</span> items
+          </div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${Math.round((vals.orders/maxVal)*100)}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── OO CUSTOMER PANEL ──────────────────────────────────────────────────────
+function buildOOCustomerList(filter = '') {
+  const list = document.getElementById('ooCustomerList');
+  const filtered = filter
+    ? ooAllCustomers.filter(c => c.toLowerCase().includes(filter.toLowerCase()))
+    : ooAllCustomers;
+  list.innerHTML = filtered.map(c => `
+    <label class="customer-item">
+      <input type="checkbox" value="${c}" ${ooSelectedCustomers.size === 0 || ooSelectedCustomers.has(c) ? 'checked' : ''}
+        onchange="toggleOOCustomer('${c.replace(/'/g,"\\'")}', this.checked)" />
+      ${c}
+    </label>
+  `).join('');
+}
+
+function toggleOOCustomerPanel(e) {
+  e.stopPropagation();
+  document.getElementById('ooCustomerPanel').classList.toggle('open');
+}
+
+function filterOOCustomerList() {
+  buildOOCustomerList(document.getElementById('ooCustomerSearch').value);
+}
+
+function toggleOOCustomer(name, checked) {
+  if (checked) {
+    if (ooSelectedCustomers.size === ooAllCustomers.length - 1) ooSelectedCustomers.clear();
+    else ooSelectedCustomers.add(name);
+  } else {
+    if (ooSelectedCustomers.size === 0) ooAllCustomers.forEach(c => ooSelectedCustomers.add(c));
+    ooSelectedCustomers.delete(name);
+  }
+  updateOOCustomerTrigger();
+  applyOOFilters();
+}
+
+function selectAllOOCustomers() {
+  ooSelectedCustomers.clear();
+  buildOOCustomerList(document.getElementById('ooCustomerSearch').value);
+  updateOOCustomerTrigger();
+  applyOOFilters();
+}
+
+function clearAllOOCustomers() {
+  ooAllCustomers.forEach(c => ooSelectedCustomers.add(c));
+  buildOOCustomerList(document.getElementById('ooCustomerSearch').value);
+  updateOOCustomerTrigger();
+  applyOOFilters();
+}
+
+function updateOOCustomerTrigger() {
+  const btn = document.getElementById('ooCustomerTrigger');
+  if (ooSelectedCustomers.size === 0 || ooSelectedCustomers.size === ooAllCustomers.length) {
+    btn.textContent = 'All Customers';
+  } else if (ooSelectedCustomers.size === 1) {
+    btn.textContent = [...ooSelectedCustomers][0];
+  } else {
+    btn.textContent = `${ooSelectedCustomers.size} customers selected`;
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('ooCustomerDropdown');
+  if (dd && !dd.contains(e.target)) {
+    document.getElementById('ooCustomerPanel').classList.remove('open');
+  }
+});
+
+// Load both datasets on init
+loadOOData();
 </script>
 </body>
 </html>

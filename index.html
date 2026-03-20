@@ -1204,15 +1204,12 @@ function filterCustomerList() {
 
 function toggleCustomer(name, checked) {
   if (checked) {
-    if (selectedCustomers.size === allCustomers.length - 1) {
-      selectedCustomers.clear();
-    } else {
-      selectedCustomers.add(name);
-    }
+    selectedCustomers.add(name);
+    // If all are now selected, revert to "all" (empty set)
+    if (selectedCustomers.size === allCustomers.length) selectedCustomers.clear();
   } else {
-    if (selectedCustomers.size === 0) {
-      allCustomers.forEach(c => selectedCustomers.add(c));
-    }
+    // If currently showing all (empty set), expand to full set then remove this one
+    if (selectedCustomers.size === 0) allCustomers.forEach(c => selectedCustomers.add(c));
     selectedCustomers.delete(name);
   }
   updateCustomerTrigger();
@@ -1229,8 +1226,6 @@ function selectAllCustomers() {
 function clearAllCustomers() {
   selectedCustomers.clear();
   allCustomers.forEach(c => selectedCustomers.add(c));
-  // Actually select none — keep the set of none selected = no rows
-  // Let's handle: empty set = all, full set = all, mid = filter
   buildCustomerList(document.getElementById('customerSearch').value);
   updateCustomerTrigger();
   applyFilters();
@@ -1238,8 +1233,10 @@ function clearAllCustomers() {
 
 function updateCustomerTrigger() {
   const btn = document.getElementById('customerTrigger');
-  if (selectedCustomers.size === 0 || selectedCustomers.size === allCustomers.length) {
+  if (selectedCustomers.size === 0) {
     btn.textContent = 'All Customers';
+  } else if (selectedCustomers.size === allCustomers.length) {
+    btn.textContent = 'No Customers';
   } else if (selectedCustomers.size === 1) {
     btn.textContent = [...selectedCustomers][0];
   } else {
@@ -1270,9 +1267,8 @@ function applyFilters() {
   let rows = allRows.filter(r => {
     if (selectedWarehouse !== 'all' && r[COL.warehouse] !== selectedWarehouse) return false;
     if (selectedSupplyType !== 'all' && (r[COL.fbSupplied] || '').toUpperCase() !== selectedSupplyType.toUpperCase()) return false;
-    if (selectedCustomers.size > 0 && selectedCustomers.size < allCustomers.length) {
-      if (!selectedCustomers.has(r[COL.customer])) return false;
-    }
+    // empty set = all customers; non-empty = only those in set
+    if (selectedCustomers.size > 0 && !selectedCustomers.has(r[COL.customer])) return false;
     return true;
   });
 
@@ -1709,9 +1705,7 @@ function applyOOFilters() {
   let rows = ooAllRows.filter(r => {
     if (wh !== 'all' && r[OO_COL.warehouse] !== wh) return false;
     if (st !== 'all' && (r[OO_COL.fbSupplied] || '').toUpperCase() !== st) return false;
-    if (ooSelectedCustomers.size > 0 && ooSelectedCustomers.size < ooAllCustomers.length) {
-      if (!ooSelectedCustomers.has(r[OO_COL.customer])) return false;
-    }
+    if (ooSelectedCustomers.size > 0 && !ooSelectedCustomers.has(r[OO_COL.customer])) return false;
     return true;
   });
 
@@ -1819,8 +1813,8 @@ function filterOOCustomerList() {
 
 function toggleOOCustomer(name, checked) {
   if (checked) {
-    if (ooSelectedCustomers.size === ooAllCustomers.length - 1) ooSelectedCustomers.clear();
-    else ooSelectedCustomers.add(name);
+    ooSelectedCustomers.add(name);
+    if (ooSelectedCustomers.size === ooAllCustomers.length) ooSelectedCustomers.clear();
   } else {
     if (ooSelectedCustomers.size === 0) ooAllCustomers.forEach(c => ooSelectedCustomers.add(c));
     ooSelectedCustomers.delete(name);
@@ -1837,6 +1831,7 @@ function selectAllOOCustomers() {
 }
 
 function clearAllOOCustomers() {
+  ooSelectedCustomers.clear();
   ooAllCustomers.forEach(c => ooSelectedCustomers.add(c));
   buildOOCustomerList(document.getElementById('ooCustomerSearch').value);
   updateOOCustomerTrigger();
@@ -1845,8 +1840,10 @@ function clearAllOOCustomers() {
 
 function updateOOCustomerTrigger() {
   const btn = document.getElementById('ooCustomerTrigger');
-  if (ooSelectedCustomers.size === 0 || ooSelectedCustomers.size === ooAllCustomers.length) {
+  if (ooSelectedCustomers.size === 0) {
     btn.textContent = 'All Customers';
+  } else if (ooSelectedCustomers.size === ooAllCustomers.length) {
+    btn.textContent = 'No Customers';
   } else if (ooSelectedCustomers.size === 1) {
     btn.textContent = [...ooSelectedCustomers][0];
   } else {

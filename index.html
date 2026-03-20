@@ -888,6 +888,12 @@ function parseDate(str) {
   return null;
 }
 
+// ── DATE HELPER ────────────────────────────────────────────────────────────
+// Use Completed Date if present, otherwise fall back to Order Date
+function getRowDate(r) {
+  return parseDate(r[COL.completedDate]) || parseDate(r[COL.orderDate]);
+}
+
 // ── WEEK HELPERS ───────────────────────────────────────────────────────────
 function getMonday(d) {
   const dt = new Date(d);
@@ -932,8 +938,10 @@ async function loadData() {
     // Skip header row; filter to 2026 by ORDER DATE, exclude Cancelled + Not Received
     const EXCLUDED_STATUSES = ['CANCELLED', 'NOT_RECEIVED'];
     allRows = rows.slice(1).filter(r => {
+      const cd = r[COL.completedDate] || '';
       const od = r[COL.orderDate] || '';
-      if (!od.includes('2026')) return false;
+      const dateStr = cd || od;
+      if (!dateStr.includes('2026')) return false;
       const status = (r[COL.liveReceivingStatus] || '').trim().toUpperCase();
       if (EXCLUDED_STATUSES.includes(status)) return false;
       return true;
@@ -1091,7 +1099,7 @@ function applyFilters() {
 
   // Assign rows to weeks
   rows.forEach(r => {
-    const d = parseDate(r[COL.orderDate]);
+    const d = getRowDate(r);
     if (!d) return;
     const wk = weeks.find(w => d >= w.monday && d <= w.sunday);
     if (!wk) return;
@@ -1323,7 +1331,7 @@ function renderCategories(weeks, rows) {
   const catTotals = {};
   rows.forEach(r => {
     // Only count rows that fall within our week range
-    const d = parseDate(r[COL.orderDate]);
+    const d = getRowDate(r);
     if (!d) return;
     const oldest = weeks[0].monday;
     const newest = weeks[weeks.length-1].sunday;
@@ -1375,7 +1383,7 @@ function renderTopCustomers(rows) {
   })();
   
   rows.forEach(r => {
-    const d = parseDate(r[COL.orderDate]);
+    const d = getRowDate(r);
     if (!d || d < oldest) return;
     const cust = r[COL.customer] || 'Unknown';
     custTotals[cust] = custTotals[cust] || { shipments: 0, qty: 0 };

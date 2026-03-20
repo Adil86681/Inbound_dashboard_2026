@@ -1680,8 +1680,13 @@ async function loadOOData() {
     if (text.trim().startsWith('<')) throw new Error('Sheet returned HTML — ensure you are logged into Google.');
 
     const rows = parseCSV(text);
-    // All rows, skip header, no date restriction
-    ooAllRows = rows.slice(1).filter(r => r.length > OO_COL.expectedQty);
+    // All rows, skip header, no date restriction; exclude blank "---" rows
+    ooAllRows = rows.slice(1).filter(r => {
+      if (r.length <= OO_COL.expectedQty) return false;
+      const cust = (r[OO_COL.customer] || '').trim();
+      if (!cust || cust === '---') return false;
+      return true;
+    });
 
     ooAllCustomers = [...new Set(ooAllRows.map(r => r[OO_COL.customer]).filter(Boolean))].sort();
     ooSelectedCustomers.clear();
